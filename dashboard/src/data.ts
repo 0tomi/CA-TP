@@ -10,9 +10,13 @@ export interface NetworkInterface {
 }
 export interface Device { ip: string; interface: string; mac: string | null; state: string }
 export interface Session { user: string; terminal: string; loginAt: string; origin: string }
+export interface Memory { totalMb: number; usedMb: number; freeMb: number; availableMb: number; swapTotalMb: number; swapUsedMb: number }
+export interface Disk { filesystem: string; size: string; used: string; available: string; usePercent: number; mount: string }
+export interface Service { name: string; active: boolean }
 export interface Metrics {
   source: 'demo' | 'log'; collectedAt: string; hostLabel: string; cpu: Cpu | null
   interfaces: NetworkInterface[]; devices: Device[]; sessions: Session[]
+  memory: Memory | null; disks: Disk[]; services: Service[]
   history: { sample: number; usage: number }[]
   logs: { resource: string; output: string }[]; warnings: string[]
 }
@@ -34,16 +38,26 @@ const demoSessions: Session[] = [
   { user: 'debian', terminal: 'tty1', loginAt: '2026-10-07 08:30', origin: 'Local' },
   { user: 'admin', terminal: 'pts/1', loginAt: '2026-10-07 09:42', origin: '192.168.1.45' },
 ]
+const demoDisks: Disk[] = [
+  { filesystem: '/dev/sda1', size: '29G', used: '7.4G', available: '20G', usePercent: 27, mount: '/' },
+  { filesystem: '/dev/sda3', size: '9.8G', used: '8.2G', available: '1.1G', usePercent: 89, mount: '/home' },
+]
+const demoServices: Service[] = [{ name: 'cron', active: true }, { name: 'sshd', active: true }]
 export const demoData: Metrics = {
   source: 'demo', collectedAt: '2026-10-07T13:00:00.000Z', hostLabel: 'debian-lab',
   cpu: { user: 18, system: 8, idle: 74, wait: 0, steal: 0, running: 2, blocked: 0, swapUsedKb: 0, freeMemoryKb: 2843000, bufferMemoryKb: 126300, cacheMemoryKb: 1452800 },
   interfaces: demoInterfaces, devices: demoDevices, sessions: demoSessions,
+  memory: { totalMb: 3916, usedMb: 1180, freeMb: 1240, availableMb: 2552, swapTotalMb: 1023, swapUsedMb: 0 },
+  disks: demoDisks, services: demoServices,
   history: Array.from({ length: 60 }, (_, index) => ({ sample: index + 1, usage: [12, 15, 18, 16, 17, 24, 22, 20, 28, 23, 25, 26][index % 12] })),
   logs: [
     { resource: 'cpu', output: 'procs -----------memory---------- ---swap-- -----io---- -system-- -------cpu-------\n r  b   swpd   free   buff  cache   si   so    bi    bo   in   cs us sy id wa st\n 2  0      0 2843000 126300 1452800   0    0     0     8  312  421 18  8 74  0  0' },
     { resource: 'red', output: '1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 state UNKNOWN\n    inet 127.0.0.1/8 scope host lo\n    RX: bytes packets errors dropped\n        2845696 12376 0 0\n    TX: bytes packets errors dropped\n        2845696 12376 0 0\n2: enp0s3: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 state UP\n    link/ether 08:00:27:b4:2c:18\n    inet 192.168.1.20/24 scope global enp0s3\n    RX: bytes packets errors dropped\n        184260096 184082 0 0\n    TX: bytes packets errors dropped\n        72624128 82246 0 0' },
     { resource: 'dispositivos_red', output: demoDevices.map(device => `${device.ip} dev ${device.interface} lladdr ${device.mac} ${device.state}`).join('\n') },
     { resource: 'usuarios', output: demoSessions.map(session => `${session.user.padEnd(9)} ${session.terminal.padEnd(7)} ${session.loginAt} (${session.origin})`).join('\n') },
+    { resource: 'memoria', output: '               total        used        free      shared  buff/cache   available\nMem:            3916        1180        1240          18        1496        2552\nSwap:           1023           0        1023' },
+    { resource: 'disco', output: ['Filesystem      Size  Used Avail Use% Mounted on', ...demoDisks.map(disk => `${disk.filesystem.padEnd(15)} ${disk.size.padStart(4)} ${disk.used.padStart(5)} ${disk.available.padStart(5)} ${`${disk.usePercent}%`.padStart(4)} ${disk.mount}`)].join('\n') },
+    { resource: 'servicios', output: demoServices.map(service => `${service.name} ${service.active ? 'activo' : 'inactivo'}`).join('\n') },
   ], warnings: [],
 }
 
@@ -71,5 +85,9 @@ export function validateMetrics(value: unknown): Metrics {
   if (data.devices.some(item => !item || !['ip', 'interface', 'state'].every(key => typeof (item as unknown as Record<string, unknown>)[key] === 'string') || (item.mac !== null && typeof item.mac !== 'string'))) throw new Error('Los datos de los vecinos de red están incompletos.')
   if (data.sessions.some(item => !item || !['user', 'terminal', 'loginAt', 'origin'].every(key => typeof (item as unknown as Record<string, unknown>)[key] === 'string'))) throw new Error('Los datos de las sesiones están incompletos.')
   if (data.history.some(item => !item || !numeric(item.sample) || !numeric(item.usage)) || data.logs.some(item => !item || typeof item.resource !== 'string' || typeof item.output !== 'string') || !strings(data.warnings)) throw new Error('El histórico o los registros tienen un formato inválido.')
+  data.memory ??= null; data.disks ??= []; data.services ??= []
+  if (data.memory !== null && (typeof data.memory !== 'object' || !['totalMb', 'usedMb', 'freeMb', 'availableMb', 'swapTotalMb', 'swapUsedMb'].every(key => numeric((data.memory as unknown as Record<string, unknown>)[key])))) throw new Error('Los datos de memoria están incompletos.')
+  if (!Array.isArray(data.disks) || data.disks.some(item => !item || !['filesystem', 'size', 'used', 'available', 'mount'].every(key => typeof (item as unknown as Record<string, unknown>)[key] === 'string') || !numeric(item.usePercent))) throw new Error('Los datos de las particiones están incompletos.')
+  if (!Array.isArray(data.services) || data.services.some(item => !item || typeof item.name !== 'string' || typeof item.active !== 'boolean')) throw new Error('Los datos de los servicios están incompletos.')
   return data
 }

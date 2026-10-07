@@ -1,11 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { MonitorLogError, parseMonitorLog } from './parser.mjs';
-import { block, completeCycle, cpuOutput, neighborsOutput, networkOutput, sessionsOutput } from './fixtures.mjs';
+import { block, completeCycle, cpuOutput, disksOutput, legacyCycle, memoryOutput, neighborsOutput, networkOutput, servicesOutput, sessionsOutput } from './fixtures.mjs';
 
 const metadata = { collectedAt: '2026-10-07T12:00:00.000Z', hostLabel: 'Debian laboratorio' };
 
-test('interpreta las cuatro salidas reales y conserva el texto de auditoría', () => {
+test('interpreta las siete salidas reales y conserva el texto de auditoría', () => {
   const metrics = parseMonitorLog(completeCycle().replaceAll('\n', '\r\n'), metadata);
   assert.equal(metrics.source, 'log');
   assert.equal(metrics.collectedAt, metadata.collectedAt);
@@ -34,7 +34,50 @@ test('interpreta las cuatro salidas reales y conserva el texto de auditoría', (
   ]);
   assert.deepEqual(metrics.history, [{ sample: 1, usage: 26 }]);
   assert.equal(metrics.logs[1].output, networkOutput);
+  assert.deepEqual(metrics.logs.map((entry) => entry.resource), ['cpu', 'red', 'dispositivos_red', 'usuarios', 'memoria', 'disco', 'servicios']);
+  assert.deepEqual(metrics.memory, { totalMb: 3916, usedMb: 1204, freeMb: 812, availableMb: 2468, swapTotalMb: 1023, swapUsedMb: 12 });
+  assert.deepEqual(metrics.disks, [
+    { filesystem: '/dev/sda1', size: '29G', used: '5.2G', available: '22G', usePercent: 20, mount: '/' },
+    { filesystem: '/dev/sda3', size: '9.8G', used: '8.1G', available: '1.2G', usePercent: 88, mount: '/home' },
+  ]);
+  assert.deepEqual(metrics.services, [{ name: 'cron', active: true }, { name: 'sshd', active: false }]);
   assert.deepEqual(metrics.warnings, []);
+});
+
+test('un log con los cuatro monitores anteriores sigue funcionando y solo avisa lo que falta', () => {
+  const metrics = parseMonitorLog(legacyCycle(80) + legacyCycle(), metadata);
+  assert.equal(metrics.cpu.idle, 74);
+  assert.equal(metrics.interfaces.length, 2);
+  assert.equal(metrics.sessions.length, 3);
+  assert.equal(metrics.memory, null);
+  assert.deepEqual(metrics.disks, []);
+  assert.deepEqual(metrics.services, []);
+  assert.equal(metrics.history.length, 2);
+  assert.deepEqual(metrics.warnings, [
+    'La captura más reciente no incluye memoria RAM.',
+    'La captura más reciente no incluye particiones de disco.',
+    'La captura más reciente no incluye servicios.',
+  ]);
+});
+
+test('interpreta free -m en español y rechaza una salida de memoria inválida', () => {
+  const spanish = `               total       usado       libre  compartido   búf/caché   disponible
+Mem.:           3916        1204         812          24        1900        2468
+Inter:          1023          12        1011`;
+  const metrics = parseMonitorLog(block('memoria', spanish), metadata);
+  assert.deepEqual(metrics.memory, { totalMb: 3916, usedMb: 1204, freeMb: 812, availableMb: 2468, swapTotalMb: 1023, swapUsedMb: 12 });
+  const invalid = parseMonitorLog(block('memoria', memoryOutput.replace('1204', 'mucho')), metadata);
+  assert.equal(invalid.memory, null);
+  assert.ok(invalid.warnings.some((warning) => warning.includes('memoria es inválida')));
+});
+
+test('omite particiones y servicios malformados con un aviso', () => {
+  const metrics = parseMonitorLog(block('disco', `${disksOutput}\n/dev/sdb1 10G 1G 9G - /mnt\n/dev/sdc1 1T 1G 999G 1% /media/disco externo`)
+    + block('servicios', `${servicesOutput}\nnginx caido\napache2 inactivo`), metadata);
+  assert.deepEqual(metrics.disks.map((disk) => [disk.mount, disk.usePercent]), [['/', 20], ['/home', 88], ['/media/disco externo', 1]]);
+  assert.deepEqual(metrics.services.map((service) => [service.name, service.active]), [['cron', true], ['sshd', false], ['apache2', false]]);
+  assert.ok(metrics.warnings.some((warning) => warning.includes('particiones (línea 4)')));
+  assert.ok(metrics.warnings.some((warning) => warning.includes('servicios (línea 3)')));
 });
 
 test('la captura parcial nueva no se completa con recursos de ciclos anteriores', () => {

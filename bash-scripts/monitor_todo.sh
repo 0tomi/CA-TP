@@ -4,5 +4,8 @@
 /home/USUARIO/monitores/monitor_red.sh
 /home/USUARIO/monitores/monitor_dispositivos.sh
 /home/USUARIO/monitores/monitor_usuarios.sh
+/home/USUARIO/monitores/monitor_memoria.sh
+/home/USUARIO/monitores/monitor_disco.sh
+/home/USUARIO/monitores/monitor_servicios.sh
 
 exit 0

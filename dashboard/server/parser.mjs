@@ -1,11 +1,14 @@
 import { isIP } from 'node:net';
 
-const RESOURCE_ORDER = ['cpu', 'red', 'dispositivos_red', 'usuarios'];
+const RESOURCE_ORDER = ['cpu', 'red', 'dispositivos_red', 'usuarios', 'memoria', 'disco', 'servicios'];
 const RESOURCE_LABELS = {
   cpu: 'CPU',
   red: 'interfaces de red',
   dispositivos_red: 'vecinos de red',
   usuarios: 'sesiones de usuarios',
+  memoria: 'memoria RAM',
+  disco: 'particiones de disco',
+  servicios: 'servicios',
 };
 
 export class MonitorLogError extends Error {
@@ -198,6 +201,54 @@ function parseSessions(output, warnings) {
   });
 }
 
+function parseMemory(output) {
+  const rows = output.split(/\r?\n/).map((line) => line.trim().split(/\s+/));
+  // free translates its labels: «Mem:»/«Mem.:» and «Swap:»/«Inter:» in Spanish locales.
+  const mem = rows.find((tokens) => /^Mem/i.test(tokens[0]))?.slice(1).map(Number) ?? [];
+  const swap = rows.find((tokens) => /^(?:Swap|Inter)/i.test(tokens[0]))?.slice(1).map(Number) ?? [];
+  const valid = (values, count) => values.length >= count && values.every((value) => Number.isFinite(value) && value >= 0);
+  if (!valid(mem, 6) || !valid(swap, 3)) return null;
+  return {
+    totalMb: mem[0],
+    usedMb: mem[1],
+    freeMb: mem[2],
+    availableMb: mem[5],
+    swapTotalMb: swap[0],
+    swapUsedMb: swap[1],
+  };
+}
+
+function parseDisks(output, warnings) {
+  return output.split(/\r?\n/).filter((line) => line.trim()).flatMap((line, index) => {
+    if (index === 0) return []; // df header, translated by the locale.
+    const tokens = line.trim().split(/\s+/);
+    const usage = /^(\d{1,3})%$/.exec(tokens[4] ?? '');
+    if (tokens.length < 6 || !usage || Number(usage[1]) > 100) {
+      warnings.push(`Se omitió una fila inválida de particiones (línea ${index + 1}).`);
+      return [];
+    }
+    return [{
+      filesystem: tokens[0],
+      size: tokens[1],
+      used: tokens[2],
+      available: tokens[3],
+      usePercent: Number(usage[1]),
+      mount: tokens.slice(5).join(' '),
+    }];
+  });
+}
+
+function parseServices(output, warnings) {
+  return output.split(/\r?\n/).filter((line) => line.trim()).flatMap((line, index) => {
+    const service = /^(\S+)\s+(activo|inactivo)$/.exec(line.trim());
+    if (!service) {
+      warnings.push(`Se omitió una línea inválida de servicios (línea ${index + 1}).`);
+      return [];
+    }
+    return [{ name: service[1], active: service[2] === 'activo' }];
+  });
+}
+
 export function parseMonitorLog(content, { collectedAt, hostLabel = 'Servidor Debian', truncated = false } = {}) {
   const warnings = [];
   if (truncated) warnings.push('El archivo es extenso: se leyó su tramo final y el histórico disponible puede estar limitado.');
@@ -214,6 +265,9 @@ export function parseMonitorLog(content, { collectedAt, hostLabel = 'Servidor De
     interfaces: [],
     devices: [],
     sessions: [],
+    memory: null,
+    disks: [],
+    services: [],
     history: [],
     logs: [],
     warnings,
@@ -233,6 +287,11 @@ export function parseMonitorLog(content, { collectedAt, hostLabel = 'Servidor De
     } else if (resource === 'red') snapshot.interfaces = parseInterfaces(event.output, warnings);
     else if (resource === 'dispositivos_red') snapshot.devices = parseDevices(event.output, warnings);
     else if (resource === 'usuarios') snapshot.sessions = parseSessions(event.output, warnings);
+    else if (resource === 'memoria') {
+      snapshot.memory = parseMemory(event.output);
+      if (!snapshot.memory) warnings.push('La lectura de memoria es inválida: se esperan las filas Mem y Swap de free -m.');
+    } else if (resource === 'disco') snapshot.disks = parseDisks(event.output, warnings);
+    else if (resource === 'servicios') snapshot.services = parseServices(event.output, warnings);
   }
   const cpuSamples = events.filter((event) => event.complete && event.resource === 'cpu')
     .map((event) => parseCpu(event.output)).filter(Boolean);

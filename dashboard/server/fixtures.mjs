@@ -30,11 +30,27 @@ gime       + pts/0      2026-10-07 09:10   .          501 (192.168.1.8)
 julian     - tty3       2026-10-07 10:20  00:03       601
 ana          pts/1      Oct 7 11:12      .           701 (laptop.local)`;
 
+export const memoryOutput = `               total        used        free      shared  buff/cache   available
+Mem:            3916        1204         812          24        1900        2468
+Swap:           1023          12        1011`;
+
+export const disksOutput = `Filesystem      Size  Used Avail Use% Mounted on
+/dev/sda1        29G  5.2G   22G  20% /
+/dev/sda3       9.8G  8.1G  1.2G  88% /home`;
+
+export const servicesOutput = `cron activo
+sshd inactivo`;
+
 export function block(resource, output) {
   return `=== API MOCK ===\nRecurso: ${resource}\n${output}\n================\n`;
 }
 
-export function completeCycle(idle = 74) {
+export function legacyCycle(idle = 74) {
   return block('cpu', cpuOutput(idle)) + block('red', networkOutput)
     + block('dispositivos_red', neighborsOutput) + block('usuarios', sessionsOutput);
+}
+
+export function completeCycle(idle = 74) {
+  return legacyCycle(idle) + block('memoria', memoryOutput)
+    + block('disco', disksOutput) + block('servicios', servicesOutput);
 }

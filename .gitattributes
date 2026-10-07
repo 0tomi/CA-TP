@@ -1,2 +1,6 @@
 # Auto detect text files and perform LF normalization
 * text=auto
+
+# Los scripts Bash siempre con fin de linea Linux, aun en Windows,
+# para evitar el error "bad interpreter" al copiarlos al Debian.
+*.sh text eol=lf

@@ -71,14 +71,16 @@ Este puente no incorpora autenticación: usá esa opción solamente en la red co
 ## Qué significa cada dato
 
 - **CPU:** porcentajes y contadores de la última fila de `vmstat 1 2`. Se descarta el promedio desde el arranque. El histórico conserva hasta 60 muestras válidas; su posición corresponde al orden del archivo, sin asignarles horarios inventados.
-- **Memoria:** cantidades libres, buffers, cache y swap presentes en `vmstat`. El TP no recoge el total de RAM: no se calcula un porcentaje de memoria usada.
+- **Memoria:** RAM y partición swap obtenidas de `free -m`. Permite calcular el porcentaje usado respecto al total real.
+- **Discos:** espacio usado y disponible por partición montada extraído de `df -hP`. No incluye discos en RAM.
+- **Servicios:** estado de ejecución (activo/inactivo) determinado mediante `ps -C`.
 - **Red:** bytes y paquetes RX/TX acumulados por interfaz, direcciones IPv4/IPv6, estado, errores y descartes de `ip -s address show`. Los contadores no se presentan como velocidad instantánea ni Mbps.
 - **Vecinos:** entradas de `ip neigh show`, incluidas `FAILED` o `INCOMPLETE` sin MAC. Representan los vecinos conocidos por el sistema; no un escaneo completo de los equipos conectados.
 - **Usuarios:** sesiones con terminal de `who -a`. Se filtran los registros auxiliares de arranque, nivel de ejecución y espera de login. La fecha se conserva tal como la entrega el comando, sin suponer una zona horaria.
 
 `collectedAt` es la última modificación del archivo de cron, no la hora individual de cada medición. Los scripts no guardan timestamps por bloque. Si una nueva ejecución todavía está escribiendo, la respuesta incluye únicamente sus recursos completos y avisa qué falta; no mezcla silenciosamente esa captura con una anterior. Los textos originales se conservan en la respuesta para consultar las salidas del TP.
 
-Los discos, los servicios y los contenedores aparecen como posibilidades en la consigna, pero los scripts actuales no los monitorizan. La interfaz no los presenta como mediciones implementadas.
+Los contenedores aparecen como posibilidad en la consigna, pero requieren herramientas como Docker que no fueron vistas en clase. La interfaz no los presenta como mediciones implementadas.
 
 ## API y verificaciones
 
