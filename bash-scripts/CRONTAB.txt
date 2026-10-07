@@ -1,0 +1,2 @@
+# Ejecutar todos los monitores una vez por minuto
+* * * * * /home/USUARIO/monitores/monitor_todo.sh >> /home/USUARIO/monitores/cron.log
