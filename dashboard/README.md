@@ -16,7 +16,7 @@ Abrí la dirección que indique el servidor de desarrollo. El modo **Demostraci�
 
 ## Conectar las lecturas reales
 
-Los scripts de `../bash-scripts/` envían su salida al módulo `api_mock.sh`. Ese módulo escribe bloques de texto; todavía no realiza solicitudes HTTP. La tarea cron guarda esos bloques en un `cron.log` una vez por minuto. El servidor de este dashboard lee ese archivo y ofrece una API de consulta. No ejecuta Bash ni recolecta métricas adicionales.
+Los scripts de `../bash-scripts/` envían su salida al cliente `api.sh`. Este realiza solicitudes HTTP `POST /api/ingest/:recurso` directamente a la API; si la API no responde, mantiene los bloques de texto en `cron.log` como respaldo. El servidor del dashboard ofrece tanto ingesta HTTP en tiempo real como lectura del registro.
 
 En Debian, configurá las rutas `/home/USUARIO/monitores` de los scripts y de `CRONTAB.txt` con el usuario y la ubicación donde los instalaste. La tarea actual es:
 

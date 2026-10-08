@@ -1,6 +1,9 @@
 #!/bin/bash
 
-API="/home/USUARIO/monitores/api_mock.sh"
+DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
+API="${API_PATH:-/home/USUARIO/monitores/api.sh}"
+[ ! -f "$API" ] && API="$DIR/api.sh"
+[ ! -f "$API" ] && API="$DIR/api_mock.sh"
 
 # df muestra el espacio usado de cada particion montada.
 # -h: tamanios legibles (G, M); -P: una linea por particion.

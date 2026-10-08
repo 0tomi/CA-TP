@@ -1,0 +1,12 @@
+{
+  "name": "ca-tp",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "npm --prefix dashboard run build",
+    "start": "npm run build && node dashboard/server/index.mjs",
+    "server": "node dashboard/server/index.mjs",
+    "test": "npm --prefix dashboard test"
+  }
+}

@@ -2,13 +2,43 @@ import { createServer } from 'node:http';
 import { open, readFile, realpath, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { MonitorLogError, parseMonitorLog } from './parser.mjs';
+import {
+  MonitorLogError,
+  parseMonitorLog,
+  parseCpu,
+  parseInterfaces,
+  parseDevices,
+  parseSessions,
+  parseMemory,
+  parseDisks,
+  parseServices,
+  RESOURCE_ORDER,
+} from './parser.mjs';
 
 const SERVER_DIR = path.dirname(fileURLToPath(import.meta.url));
 const DEFAULT_LOG = path.resolve(SERVER_DIR, '../../bash-scripts/cron.log');
 const DEFAULT_DIST = path.resolve(SERVER_DIR, '../dist');
 const MAX_LOG_BYTES = 2 * 1024 * 1024;
-const DEFAULT_ORIGINS = ['http://localhost:5173', 'http://127.0.0.1:5173'];
+const DEFAULT_ORIGINS = ['*'];
+
+function readBody(request, limitBytes = 1024 * 1024) {
+  return new Promise((resolve, reject) => {
+    let size = 0;
+    const chunks = [];
+    request.on('data', (chunk) => {
+      size += chunk.length;
+      if (size > limitBytes) {
+        reject(new Error('PAYLOAD_TOO_LARGE'));
+      } else {
+        chunks.push(chunk);
+      }
+    });
+    request.on('end', () => {
+      resolve(Buffer.concat(chunks).toString('utf8'));
+    });
+    request.on('error', reject);
+  });
+}
 const CONTENT_TYPES = {
   '.html': 'text/html; charset=utf-8',
   '.css': 'text/css; charset=utf-8',
@@ -98,27 +128,32 @@ export function createMonitorServer({
   distDir = DEFAULT_DIST,
   hostLabel = process.env.MONITOR_HOST_LABEL || 'Servidor Debian',
   allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',').map((origin) => origin.trim()).filter(Boolean) ?? DEFAULT_ORIGINS,
+  initialSnapshot = null,
 } = {}) {
+  let inMemorySnapshot = initialSnapshot;
+
   return createServer(async (request, response) => {
     response.setHeader('X-Content-Type-Options', 'nosniff');
     const origin = request.headers.origin;
-    if (origin && !allowedOrigins.includes(origin)) {
+    const allowAnyOrigin = allowedOrigins.includes('*');
+    if (origin && !allowAnyOrigin && !allowedOrigins.includes(origin)) {
       json(response, 403, { error: 'El origen de esta conexión no está permitido.' });
       return;
     }
     if (origin) {
-      response.setHeader('Access-Control-Allow-Origin', origin);
+      response.setHeader('Access-Control-Allow-Origin', allowAnyOrigin ? '*' : origin);
       response.setHeader('Vary', 'Origin');
-      response.setHeader('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
+      response.setHeader('Access-Control-Allow-Methods', 'GET, HEAD, POST, OPTIONS');
+      response.setHeader('Access-Control-Allow-Headers', 'Content-Type');
     }
     if (request.method === 'OPTIONS') {
       response.writeHead(204);
       response.end();
       return;
     }
-    if (!['GET', 'HEAD'].includes(request.method)) {
-      response.setHeader('Allow', 'GET, HEAD, OPTIONS');
-      json(response, 405, { error: 'Este servidor permite solamente consultas de lectura.' });
+    if (!['GET', 'HEAD', 'POST'].includes(request.method)) {
+      response.setHeader('Allow', 'GET, HEAD, POST, OPTIONS');
+      json(response, 405, { error: 'Método no permitido.' });
       return;
     }
     try {
@@ -129,14 +164,179 @@ export function createMonitorServer({
         return;
       }
       const pathname = new URL(request.url ?? '/', 'http://localhost').pathname;
+
       if (pathname === '/api/health') {
-        json(response, 200, { status: 'ok', source: 'log' });
+        if (!['GET', 'HEAD'].includes(request.method)) {
+          response.setHeader('Allow', 'GET, HEAD, OPTIONS');
+          json(response, 405, { error: 'Este endpoint permite solamente consultas de lectura.' });
+          return;
+        }
+        json(response, 200, { status: 'ok', source: inMemorySnapshot ? 'api' : 'log' });
       } else if (pathname === '/api/metrics') {
-        const snapshot = await readMetrics(logPath, hostLabel);
-        json(response, 200, snapshot);
+        if (!['GET', 'HEAD'].includes(request.method)) {
+          response.setHeader('Allow', 'GET, HEAD, OPTIONS');
+          json(response, 405, { error: 'Este endpoint permite solamente consultas de lectura.' });
+          return;
+        }
+        if (inMemorySnapshot) {
+          json(response, 200, inMemorySnapshot);
+        } else {
+          const snapshot = await readMetrics(logPath, hostLabel);
+          json(response, 200, snapshot);
+        }
+      } else if (pathname.startsWith('/api/ingest')) {
+        const ingestMatch = pathname.match(/^\/api\/ingest\/([^/]+)$/);
+        if (!ingestMatch) {
+          json(response, 400, { error: 'Ruta de ingesta inválida.' });
+          return;
+        }
+        if (request.method !== 'POST') {
+          response.setHeader('Allow', 'POST, OPTIONS');
+          json(response, 405, { error: 'El endpoint de ingesta solo admite peticiones POST.' });
+          return;
+        }
+        const resource = ingestMatch[1];
+        if (!RESOURCE_ORDER.includes(resource)) {
+          json(response, 400, { error: `Recurso desconocido: ${resource}` });
+          return;
+        }
+
+        let body;
+        try {
+          body = await readBody(request);
+        } catch {
+          json(response, 400, { error: 'Error al leer el cuerpo de la petición.' });
+          return;
+        }
+
+        if (!body || !body.trim()) {
+          json(response, 400, { error: 'Body vacío' });
+          return;
+        }
+
+        const warnings = [];
+        let parsed = null;
+        let parseError = null;
+
+        switch (resource) {
+          case 'cpu':
+            parsed = parseCpu(body);
+            if (!parsed) {
+              parseError = 'La muestra de CPU es inválida: se esperan las columnas numéricas de vmstat.';
+            }
+            break;
+          case 'red':
+            parsed = parseInterfaces(body, warnings);
+            if (!parsed || parsed.length === 0) {
+              parseError = warnings[0] || 'No se pudo interpretar la salida de las interfaces de red.';
+            }
+            break;
+          case 'dispositivos_red':
+            parsed = parseDevices(body, warnings);
+            if (!parsed || (body.trim() && parsed.length === 0 && warnings.length > 0)) {
+              parseError = warnings[0] || 'No se pudo interpretar la tabla de vecinos de red.';
+            }
+            break;
+          case 'usuarios':
+            parsed = parseSessions(body, warnings);
+            if (!parsed || (body.trim() && parsed.length === 0 && warnings.length > 0)) {
+              parseError = warnings[0] || 'No se pudo interpretar la lista de sesiones de usuarios.';
+            }
+            break;
+          case 'memoria':
+            parsed = parseMemory(body);
+            if (!parsed) {
+              parseError = 'La lectura de memoria es inválida: se esperan las filas Mem y Swap de free -m.';
+            }
+            break;
+          case 'disco':
+            parsed = parseDisks(body, warnings);
+            if (!parsed || parsed.length === 0) {
+              parseError = warnings[0] || 'No se pudieron interpretar las particiones de disco.';
+            }
+            break;
+          case 'servicios':
+            parsed = parseServices(body, warnings);
+            if (!parsed || parsed.length === 0) {
+              parseError = warnings[0] || 'No se pudo interpretar el estado de los servicios.';
+            }
+            break;
+        }
+
+        if (!inMemorySnapshot) {
+          inMemorySnapshot = {
+            source: 'api',
+            collectedAt: new Date().toISOString(),
+            hostLabel,
+            cpu: null,
+            interfaces: [],
+            devices: [],
+            sessions: [],
+            memory: null,
+            disks: [],
+            services: [],
+            history: [],
+            logs: [],
+            warnings: [],
+          };
+        }
+
+        inMemorySnapshot.collectedAt = new Date().toISOString();
+
+        const existingLogIndex = inMemorySnapshot.logs.findIndex((l) => l.resource === resource);
+        if (existingLogIndex >= 0) {
+          inMemorySnapshot.logs[existingLogIndex] = { resource, output: body };
+        } else {
+          inMemorySnapshot.logs.push({ resource, output: body });
+        }
+
+        if (parseError) {
+          json(response, 422, { error: parseError, resource });
+          return;
+        }
+
+        switch (resource) {
+          case 'cpu': {
+            inMemorySnapshot.cpu = parsed;
+            const usage = Math.round((100 - parsed.idle) * 100) / 100;
+            const lastSample = inMemorySnapshot.history.length > 0
+              ? inMemorySnapshot.history[inMemorySnapshot.history.length - 1].sample
+              : 0;
+            inMemorySnapshot.history.push({ sample: lastSample + 1, usage });
+            if (inMemorySnapshot.history.length > 60) {
+              inMemorySnapshot.history = inMemorySnapshot.history.slice(-60);
+            }
+            break;
+          }
+          case 'red':
+            inMemorySnapshot.interfaces = parsed;
+            break;
+          case 'dispositivos_red':
+            inMemorySnapshot.devices = parsed;
+            break;
+          case 'usuarios':
+            inMemorySnapshot.sessions = parsed;
+            break;
+          case 'memoria':
+            inMemorySnapshot.memory = parsed;
+            break;
+          case 'disco':
+            inMemorySnapshot.disks = parsed;
+            break;
+          case 'servicios':
+            inMemorySnapshot.services = parsed;
+            break;
+        }
+
+        json(response, 200, { ok: true, resource });
       } else if (pathname.startsWith('/api/')) {
         json(response, 404, { error: 'Consulta no encontrada.' });
       } else {
+        if (!['GET', 'HEAD'].includes(request.method)) {
+          response.setHeader('Allow', 'GET, HEAD, OPTIONS');
+          json(response, 405, { error: 'Este servidor permite solamente consultas de lectura para archivos estáticos.' });
+          return;
+        }
         await sendStatic(response, decodedPath, distDir, request.method === 'HEAD');
       }
     } catch (error) {
@@ -155,7 +355,7 @@ export function createMonitorServer({
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const port = Number(process.env.PORT ?? 8787);
-  const host = process.env.HOST || '127.0.0.1';
+  const host = process.env.HOST || '0.0.0.0';
   if (!Number.isInteger(port) || port < 1 || port > 65535) {
     process.stderr.write('PORT debe ser un número entre 1 y 65535.\n');
     process.exitCode = 1;

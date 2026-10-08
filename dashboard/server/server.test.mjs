@@ -5,9 +5,9 @@ import { mkdtemp, mkdir, rm, symlink, utimes, writeFile } from 'node:fs/promises
 import os from 'node:os';
 import path from 'node:path';
 import { createMonitorServer, readMetrics } from './index.mjs';
-import { completeCycle } from './fixtures.mjs';
+import { completeCycle, cpuOutput, disksOutput, memoryOutput, neighborsOutput, networkOutput, servicesOutput, sessionsOutput } from './fixtures.mjs';
 
-async function setup(t, { missingLog = false, emptyLog = false, missingDist = false } = {}) {
+async function setup(t, { missingLog = false, emptyLog = false, missingDist = false, allowedOrigins } = {}) {
   const root = await mkdtemp(path.join(os.tmpdir(), 'ca-tp-dashboard-test-'));
   const logPath = path.join(root, 'cron.log');
   const distDir = path.join(root, 'dist');
@@ -18,7 +18,7 @@ async function setup(t, { missingLog = false, emptyLog = false, missingDist = fa
     await writeFile(path.join(distDir, 'style.css'), 'body { color: green; }');
   }
   await writeFile(path.join(root, 'secret.txt'), 'NO DEBE SER ACCESIBLE');
-  const server = createMonitorServer({ logPath, distDir, hostLabel: 'Servidor de prueba' });
+  const server = createMonitorServer({ logPath, distDir, hostLabel: 'Servidor de prueba', allowedOrigins });
   await new Promise((resolve, reject) => {
     server.once('error', reject);
     server.listen(0, '127.0.0.1', resolve);
@@ -30,7 +30,7 @@ async function setup(t, { missingLog = false, emptyLog = false, missingDist = fa
   return { root, logPath, distDir, port: server.address().port };
 }
 
-function call(port, requestPath, { method = 'GET', headers = {} } = {}) {
+function call(port, requestPath, { method = 'GET', headers = {}, body } = {}) {
   return new Promise((resolve, reject) => {
     const req = request({ hostname: '127.0.0.1', port, path: requestPath, method, headers, agent: false }, (res) => {
       let text = '';
@@ -39,6 +39,7 @@ function call(port, requestPath, { method = 'GET', headers = {} } = {}) {
       res.on('end', () => resolve({ status: res.statusCode, headers: res.headers, text }));
     });
     req.on('error', reject);
+    if (body !== undefined) req.write(body);
     req.end();
   });
 }
@@ -101,8 +102,8 @@ test('bloquea traversal incluso codificado y enlaces que salgan del dist', async
   assert.ok(!response.text.includes('NO DEBE SER ACCESIBLE'));
 });
 
-test('el servidor es de lectura y permite solamente los orígenes configurados', async (t) => {
-  const { port } = await setup(t);
+test('permite solamente los orígenes configurados cuando se restringe allowedOrigins', async (t) => {
+  const { port } = await setup(t, { allowedOrigins: ['http://localhost:5173'] });
   const local = await call(port, '/api/metrics', { headers: { Origin: 'http://localhost:5173' } });
   assert.equal(local.status, 200);
   assert.equal(local.headers['access-control-allow-origin'], 'http://localhost:5173');
@@ -113,6 +114,150 @@ test('el servidor es de lectura y permite solamente los orígenes configurados',
   assert.equal((await call(port, '/api/health')).status, 200);
   assert.equal((await call(port, '/api/no-existe')).status, 404);
   assert.equal((await call(port, '/%invalid')).status, 400);
+});
+
+test('permite cualquier origen CORS por defecto en red local', async (t) => {
+  const { port } = await setup(t);
+  const response = await call(port, '/api/health', { headers: { Origin: 'http://192.168.1.50:5173' } });
+  assert.equal(response.status, 200);
+  assert.equal(response.headers['access-control-allow-origin'], '*');
+});
+
+test('ingesta de recursos mediante POST /api/ingest/:resource y actualización en memoria', async (t) => {
+  // Configurar servidor sin archivo de log para comprobar que responde desde memoria
+  const { port } = await setup(t, { missingLog: true });
+
+  // Antes de ingerir, GET /api/metrics devuelve 503 porque el log no existe
+  const initial = await call(port, '/api/metrics');
+  assert.equal(initial.status, 503);
+
+  // 1. Ingesta de CPU
+  const cpuRes = await call(port, '/api/ingest/cpu', {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain' },
+    body: cpuOutput(),
+  });
+  assert.equal(cpuRes.status, 200);
+  assert.deepEqual(JSON.parse(cpuRes.text), { ok: true, resource: 'cpu' });
+
+  // Ahora GET /api/metrics devuelve el snapshot en memoria
+  const afterCpu = await call(port, '/api/metrics');
+  assert.equal(afterCpu.status, 200);
+  const snapshotCpu = JSON.parse(afterCpu.text);
+  assert.equal(snapshotCpu.source, 'api');
+  assert.equal(snapshotCpu.cpu.idle, 74);
+  assert.equal(snapshotCpu.history.length, 1);
+  assert.equal(snapshotCpu.history[0].usage, 26);
+  assert.equal(snapshotCpu.logs.length, 1);
+  assert.equal(snapshotCpu.logs[0].resource, 'cpu');
+
+  // Enviar una segunda muestra de CPU para comprobar acumulación en history
+  await call(port, '/api/ingest/cpu', {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain' },
+    body: cpuOutput(80),
+  });
+  const afterCpu2 = await call(port, '/api/metrics');
+  const snapshotCpu2 = JSON.parse(afterCpu2.text);
+  assert.equal(snapshotCpu2.history.length, 2);
+  assert.equal(snapshotCpu2.history[1].sample, 2);
+
+  // 2. Ingesta de Red
+  const netRes = await call(port, '/api/ingest/red', {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain' },
+    body: networkOutput,
+  });
+  assert.equal(netRes.status, 200);
+
+  // 3. Ingesta de Vecinos
+  const neighRes = await call(port, '/api/ingest/dispositivos_red', {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain' },
+    body: neighborsOutput,
+  });
+  assert.equal(neighRes.status, 200);
+
+  // 4. Ingesta de Usuarios
+  const userRes = await call(port, '/api/ingest/usuarios', {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain' },
+    body: sessionsOutput,
+  });
+  assert.equal(userRes.status, 200);
+
+  // 5. Ingesta de Memoria
+  const memRes = await call(port, '/api/ingest/memoria', {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain' },
+    body: memoryOutput,
+  });
+  assert.equal(memRes.status, 200);
+
+  // 6. Ingesta de Disco
+  const diskRes = await call(port, '/api/ingest/disco', {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain' },
+    body: disksOutput,
+  });
+  assert.equal(diskRes.status, 200);
+
+  // 7. Ingesta de Servicios
+  const servRes = await call(port, '/api/ingest/servicios', {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain' },
+    body: servicesOutput,
+  });
+  assert.equal(servRes.status, 200);
+
+  // Verificar snapshot completo con los 7 recursos
+  const full = await call(port, '/api/metrics');
+  assert.equal(full.status, 200);
+  const fullSnapshot = JSON.parse(full.text);
+  assert.equal(fullSnapshot.interfaces.length, 2);
+  assert.equal(fullSnapshot.devices.length, 4);
+  assert.equal(fullSnapshot.sessions.length, 3);
+  assert.equal(fullSnapshot.memory.totalMb, 3916);
+  assert.equal(fullSnapshot.disks.length, 2);
+  assert.equal(fullSnapshot.services.length, 2);
+  assert.equal(fullSnapshot.logs.length, 7);
+});
+
+test('valida errores en POST /api/ingest/:resource', async (t) => {
+  const { port } = await setup(t);
+
+  // Recurso desconocido -> 400
+  const unknownRes = await call(port, '/api/ingest/desconocido', {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain' },
+    body: 'datos',
+  });
+  assert.equal(unknownRes.status, 400);
+  assert.deepEqual(JSON.parse(unknownRes.text), { error: 'Recurso desconocido: desconocido' });
+
+  // Body vacío -> 400
+  const emptyRes = await call(port, '/api/ingest/cpu', {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain' },
+    body: '   ',
+  });
+  assert.equal(emptyRes.status, 400);
+  assert.deepEqual(JSON.parse(emptyRes.text), { error: 'Body vacío' });
+
+  // Body no parseable -> 422 y guarda el log
+  const unparseableRes = await call(port, '/api/ingest/cpu', {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain' },
+    body: 'texto que no es salida de vmstat',
+  });
+  assert.equal(unparseableRes.status, 422);
+  const unparseableJson = JSON.parse(unparseableRes.text);
+  assert.equal(unparseableJson.resource, 'cpu');
+  assert.ok(unparseableJson.error);
+
+  // GET en /api/ingest/cpu -> 405
+  const getRes = await call(port, '/api/ingest/cpu');
+  assert.equal(getRes.status, 405);
 });
 
 test('informa cómo iniciar la interfaz cuando dist todavía no existe', async (t) => {

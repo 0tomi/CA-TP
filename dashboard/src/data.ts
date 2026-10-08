@@ -14,7 +14,7 @@ export interface Memory { totalMb: number; usedMb: number; freeMb: number; avail
 export interface Disk { filesystem: string; size: string; used: string; available: string; usePercent: number; mount: string }
 export interface Service { name: string; active: boolean }
 export interface Metrics {
-  source: 'demo' | 'log'; collectedAt: string; hostLabel: string; cpu: Cpu | null
+  source: 'demo' | 'log' | 'api'; collectedAt: string; hostLabel: string; cpu: Cpu | null
   interfaces: NetworkInterface[]; devices: Device[]; sessions: Session[]
   memory: Memory | null; disks: Disk[]; services: Service[]
   history: { sample: number; usage: number }[]
@@ -77,7 +77,7 @@ export function interfaceActive(item: NetworkInterface) { return item.state === 
 export function validateMetrics(value: unknown): Metrics {
   if (!value || typeof value !== 'object') throw new Error('La respuesta no contiene métricas válidas.')
   const data = value as Metrics
-  if (!['demo', 'log'].includes(data.source) || typeof data.collectedAt !== 'string' || typeof data.hostLabel !== 'string' || !['interfaces', 'devices', 'sessions', 'history', 'logs', 'warnings'].every(key => Array.isArray((data as unknown as Record<string, unknown>)[key]))) throw new Error('La respuesta no coincide con el formato de métricas del TP.')
+  if (!['demo', 'log', 'api'].includes(data.source) || typeof data.collectedAt !== 'string' || typeof data.hostLabel !== 'string' || !['interfaces', 'devices', 'sessions', 'history', 'logs', 'warnings'].every(key => Array.isArray((data as unknown as Record<string, unknown>)[key]))) throw new Error('La respuesta no coincide con el formato de métricas del TP.')
   const numeric = (entry: unknown) => typeof entry === 'number' && Number.isFinite(entry) && entry >= 0
   const strings = (entry: unknown) => Array.isArray(entry) && entry.every(item => typeof item === 'string')
   if (data.cpu !== null && (!data.cpu || !['user', 'system', 'idle', 'wait', 'steal', 'running', 'blocked', 'swapUsedKb', 'freeMemoryKb', 'bufferMemoryKb', 'cacheMemoryKb'].every(key => numeric((data.cpu as unknown as Record<string, unknown>)[key])))) throw new Error('Los datos del procesador están incompletos.')

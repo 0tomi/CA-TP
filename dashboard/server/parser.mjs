@@ -1,7 +1,7 @@
 import { isIP } from 'node:net';
 
-const RESOURCE_ORDER = ['cpu', 'red', 'dispositivos_red', 'usuarios', 'memoria', 'disco', 'servicios'];
-const RESOURCE_LABELS = {
+export const RESOURCE_ORDER = ['cpu', 'red', 'dispositivos_red', 'usuarios', 'memoria', 'disco', 'servicios'];
+export const RESOURCE_LABELS = {
   cpu: 'CPU',
   red: 'interfaces de red',
   dispositivos_red: 'vecinos de red',
@@ -70,7 +70,7 @@ function latestCycle(events, warnings) {
   return cycle;
 }
 
-function parseCpu(output) {
+export function parseCpu(output) {
   const lines = output.trim().split(/\r?\n/).filter(Boolean);
   if (lines.length !== 1) return null;
   const values = lines[0].trim().split(/\s+/).map(Number);
@@ -104,7 +104,7 @@ function parseCounters(header, row) {
   return counters;
 }
 
-function parseInterfaces(output, warnings) {
+export function parseInterfaces(output, warnings = []) {
   const groups = [];
   let group = null;
   for (const line of output.split(/\r?\n/)) {
@@ -155,7 +155,7 @@ function parseInterfaces(output, warnings) {
   });
 }
 
-function parseDevices(output, warnings) {
+export function parseDevices(output, warnings = []) {
   const states = new Set(['INCOMPLETE', 'REACHABLE', 'STALE', 'DELAY', 'PROBE', 'FAILED', 'NOARP', 'PERMANENT', 'NONE']);
   return output.split(/\r?\n/).filter((line) => line.trim()).flatMap((line, index) => {
     const tokens = line.trim().split(/\s+/);
@@ -172,7 +172,7 @@ function parseDevices(output, warnings) {
   });
 }
 
-function parseSessions(output, warnings) {
+export function parseSessions(output, warnings = []) {
   const auxiliary = /^(?:LOGIN|login|reboot|shutdown|system|run-level|\.)$/i;
   const terminalPattern = /^(?:pts\/\d+|tty[\w/-]*|console|vc\/\d+|hvc\d+|xvc\d+|:\d+(?:\.\d+)?)$/;
   return output.split(/\r?\n/).filter((line) => line.trim()).flatMap((line, index) => {
@@ -201,7 +201,7 @@ function parseSessions(output, warnings) {
   });
 }
 
-function parseMemory(output) {
+export function parseMemory(output) {
   const rows = output.split(/\r?\n/).map((line) => line.trim().split(/\s+/));
   // free translates its labels: «Mem:»/«Mem.:» and «Swap:»/«Inter:» in Spanish locales.
   const mem = rows.find((tokens) => /^Mem/i.test(tokens[0]))?.slice(1).map(Number) ?? [];
@@ -218,7 +218,7 @@ function parseMemory(output) {
   };
 }
 
-function parseDisks(output, warnings) {
+export function parseDisks(output, warnings = []) {
   return output.split(/\r?\n/).filter((line) => line.trim()).flatMap((line, index) => {
     if (index === 0) return []; // df header, translated by the locale.
     const tokens = line.trim().split(/\s+/);
@@ -238,7 +238,7 @@ function parseDisks(output, warnings) {
   });
 }
 
-function parseServices(output, warnings) {
+export function parseServices(output, warnings = []) {
   return output.split(/\r?\n/).filter((line) => line.trim()).flatMap((line, index) => {
     const service = /^(\S+)\s+(activo|inactivo)$/.exec(line.trim());
     if (!service) {
