@@ -181,8 +181,15 @@ export function createMonitorServer({
         if (inMemorySnapshot) {
           json(response, 200, inMemorySnapshot);
         } else {
-          const snapshot = await readMetrics(logPath, hostLabel);
-          json(response, 200, snapshot);
+          try {
+            const snapshot = await readMetrics(logPath, hostLabel);
+            json(response, 200, snapshot);
+          } catch (err) {
+            json(response, 503, {
+              error: 'La API no tiene datos disponibles para monitorizar. Esperando el envío de métricas desde la VM.',
+              code: err?.code || 'LOG_UNAVAILABLE',
+            });
+          }
         }
       } else if (pathname.startsWith('/api/ingest')) {
         const ingestMatch = pathname.match(/^\/api\/ingest\/([^/]+)$/);
