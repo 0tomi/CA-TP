@@ -49,7 +49,7 @@ export const demoData: Metrics = {
   interfaces: demoInterfaces, devices: demoDevices, sessions: demoSessions,
   memory: { totalMb: 3916, usedMb: 1180, freeMb: 1240, availableMb: 2552, swapTotalMb: 1023, swapUsedMb: 0 },
   disks: demoDisks, services: demoServices,
-  history: Array.from({ length: 60 }, (_, index) => ({ sample: index + 1, usage: [12, 15, 18, 16, 17, 24, 22, 20, 28, 23, 25, 26][index % 12] })),
+  history: Array.from({ length: 100 }, (_, index) => ({ sample: index + 1, usage: [12, 15, 18, 16, 17, 24, 22, 20, 28, 23, 25, 26][index % 12] })),
   logs: [
     { resource: 'cpu', output: 'procs -----------memory---------- ---swap-- -----io---- -system-- -------cpu-------\n r  b   swpd   free   buff  cache   si   so    bi    bo   in   cs us sy id wa st\n 2  0      0 2843000 126300 1452800   0    0     0     8  312  421 18  8 74  0  0' },
     { resource: 'red', output: '1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 state UNKNOWN\n    inet 127.0.0.1/8 scope host lo\n    RX: bytes packets errors dropped\n        2845696 12376 0 0\n    TX: bytes packets errors dropped\n        2845696 12376 0 0\n2: enp0s3: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 state UP\n    link/ether 08:00:27:b4:2c:18\n    inet 192.168.1.20/24 scope global enp0s3\n    RX: bytes packets errors dropped\n        184260096 184082 0 0\n    TX: bytes packets errors dropped\n        72624128 82246 0 0' },
@@ -71,7 +71,7 @@ export function formatBytes(bytes: number) {
 export function percentage(value: number | undefined) { return value === undefined || !Number.isFinite(value) ? '—' : `${value.toLocaleString('es-AR', { maximumFractionDigits: 1 })}%` }
 export function readableDate(value: string) {
   const date = new Date(value)
-  return Number.isNaN(date.getTime()) ? 'Sin fecha de escritura' : date.toLocaleString('es-AR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', timeZone: 'America/Argentina/Buenos_Aires' })
+  return Number.isNaN(date.getTime()) ? 'Sin fecha de toma' : date.toLocaleString('es-AR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', second: '2-digit', timeZone: 'America/Argentina/Buenos_Aires' })
 }
 export function interfaceActive(item: NetworkInterface) { return item.state === 'UP' || (item.name === 'lo' && item.addresses.length > 0) }
 export function validateMetrics(value: unknown): Metrics {

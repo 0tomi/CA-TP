@@ -310,8 +310,8 @@ export function createMonitorServer({
               ? inMemorySnapshot.history[inMemorySnapshot.history.length - 1].sample
               : 0;
             inMemorySnapshot.history.push({ sample: lastSample + 1, usage });
-            if (inMemorySnapshot.history.length > 60) {
-              inMemorySnapshot.history = inMemorySnapshot.history.slice(-60);
+            if (inMemorySnapshot.history.length > 100) {
+              inMemorySnapshot.history = inMemorySnapshot.history.slice(-100);
             }
             break;
           }

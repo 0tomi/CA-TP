@@ -295,7 +295,7 @@ export function parseMonitorLog(content, { collectedAt, hostLabel = 'Servidor De
   }
   const cpuSamples = events.filter((event) => event.complete && event.resource === 'cpu')
     .map((event) => parseCpu(event.output)).filter(Boolean);
-  snapshot.history = cpuSamples.slice(-60).map((cpu, index, samples) => ({
+  snapshot.history = cpuSamples.slice(-100).map((cpu, index, samples) => ({
     sample: cpuSamples.length - samples.length + index + 1,
     usage: Math.round((100 - cpu.idle) * 100) / 100,
   }));

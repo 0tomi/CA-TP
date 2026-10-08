@@ -129,12 +129,12 @@ test('advierte filas malformadas sin reemplazarlas por valores cero', () => {
   assert.ok(metrics.warnings.some((warning) => warning.includes('fecha ilegible')));
 });
 
-test('conserva las últimas 60 muestras CPU sin asignarles fechas ni intervalos inventados', () => {
-  const content = Array.from({ length: 65 }, (_, index) => block('cpu', cpuOutput(30 + index))).join('');
+test('conserva las últimas 100 muestras CPU sin asignarles fechas ni intervalos inventados', () => {
+  const content = Array.from({ length: 105 }, (_, index) => block('cpu', cpuOutput(20 + (index % 50)))).join('');
   const metrics = parseMonitorLog(content, { ...metadata, truncated: true });
-  assert.equal(metrics.history.length, 60);
-  assert.deepEqual(metrics.history[0], { sample: 6, usage: 65 });
-  assert.deepEqual(metrics.history.at(-1), { sample: 65, usage: 6 });
+  assert.equal(metrics.history.length, 100);
+  assert.deepEqual(metrics.history[0], { sample: 6, usage: 75 });
+  assert.deepEqual(metrics.history.at(-1), { sample: 105, usage: 76 });
   assert.ok(metrics.warnings.some((warning) => warning.includes('tramo final')));
 });
 
