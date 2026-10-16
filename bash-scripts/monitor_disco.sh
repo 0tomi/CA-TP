@@ -12,4 +12,7 @@ DATOS=$(df -hP -x tmpfs -x devtmpfs)
 
 "$API" "disco" "$DATOS"
 
+source "$DIR/alertas.sh"
+alertar_lectura disco "$DATOS" >&2
+
 exit 0

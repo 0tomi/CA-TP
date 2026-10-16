@@ -1,172 +1,87 @@
 ---
 name: comandos-practica-gnu-linux
-description: Allowlist compacta de comandos, utilidades y herramientas vistos o mencionados en las clases prácticas de Computación Avanzada para trabajar en GNU/Linux.
+description: Repertorio de comandos de GNU/Linux vistos o mencionados en las clases prácticas 1 a 7 de Computación Avanzada, incluidos monitoreo, generación de carga y benchmarking.
 ---
 
-# Comandos permitidos de las clases prácticas
+# Repertorio de comandos — Computación Avanzada (Práctica)
 
-Esta skill contiene la **lista de comandos permitidos** tomados de las clases prácticas de Computación Avanzada. Se agrupan por función para que los agentes puedan reutilizarlos directamente en tareas de monitorización, diagnóstico y administración relacionadas.
+Lista agrupada de comandos incluidos en el material de las clases prácticas de GNU/Linux.
 
-## Sistema, ayuda y paquetes
+## Ayuda y localización de comandos
+Consulta de documentación, descripciones y ubicaciones de ejecutables.
 
-Comandos generales del sistema, consulta de ayuda y gestión de paquetes mencionados en las clases.
+`man`, `apropos`, `whereis`, `which`, `whatis`
 
-- `shutdown`
-- `reboot`
-- `exit`
-- `logout`
-- `man`
-- `apropos`
-- `whereis`
-- `which`
-- `whatis`
-- `apt`
+## Sistema y sesiones
+Estado e identificación del sistema, apagado, reinicio y finalización de sesiones.
 
-## Directorios, archivos e información del sistema
+`lsb_release`, `uname`, `uptime`, `shutdown`, `reboot`, `exit`, `logout`
 
-Comandos para navegar, crear, copiar, mover y eliminar archivos/directorios, además de consultar información básica del sistema.
+## Archivos y directorios
+Navegación y operaciones sobre archivos y directorios.
 
-- `pwd`
-- `ls`
-- `cd`
-- `lsb_release`
-- `uname`
-- `touch`
-- `mkdir`
-- `rm`
-- `mv`
-- `cp`
+`pwd`, `ls`, `cd`, `touch`, `mkdir`, `rm`, `mv`, `cp`
 
-## Lectura, edición y procesamiento de texto
+## Visualización y edición de archivos
+Lectura, paginación, inspección y edición de archivos de texto.
 
-Comandos para mostrar, recorrer, editar o procesar contenido textual.
+`cat`, `more`, `less`, `head`, `tail`, `nano`, `vi`
 
-- `cat`
-- `more`
-- `less`
-- `head`
-- `tail`
-- `nano`
-- `vi`
-- `wc`
+## Usuarios, sesiones y permisos
+Consulta de usuarios conectados, historial de sesiones, identidad y administración de permisos.
+
+`id`, `last`, `who`, `w`, `su`, `passwd`, `chmod`, `chown`
 
 ## Redes
+Consulta de interfaces, rutas, vecinos, conexiones y resolución de nombres.
 
-Comandos para inspección, configuración y diagnóstico de red vistos o mencionados en el material.
+`ifconfig`, `route`, `arp`, `netstat`, `ip`, `ss`, `ping`, `traceroute`, `nslookup`, `dig`
 
-- `ifconfig`
-- `route`
-- `arp`
-- `netstat`
-- `ss`
-- `ip`
-- `ping`
-- `traceroute`
-- `nslookup`
-- `dig`
+Subcomandos citados: `ip address show`, `ip route show`, `ip neigh show`, `ip maddr`.
 
-## Usuarios, sesiones, seguridad y permisos
+## Procesos y monitoreo interactivo
+Estado, jerarquía, seguimiento y uso de recursos por procesos.
 
-Comandos para consultar usuarios y sesiones o gestionar identidad, contraseñas, permisos y propietarios.
+`ps`, `top`, `pstree`, `htop`, `btop`, `glances`, `atop`, `nmon`, `watch`, `time`
 
-- `id`
-- `last`
-- `who`
-- `w`
-- `su`
-- `passwd`
-- `chmod`
-- `chown`
+## CPU, memoria, actividad y estadísticas históricas
+Medición de carga, memoria, CPU y actividad del sistema; recopilación de estadísticas.
 
-## Monitorización de procesos y recursos
+`vmstat`, `free`, `iostat`, `sar`, `sadc`, `sa1`, `sa2`, `debian-sa1`
 
-Monitores de procesos, carga, CPU, memoria y actividad general del sistema.
+## Discos, archivos abiertos y E/S
+Espacio, metadatos, descriptores, actividad y latencia de dispositivos de almacenamiento.
 
-- `time`
-- `uptime`
-- `ps`
-- `top`
-- `vmstat`
-- `free`
-- `iostat`
-- `sar`
-- `watch`
-- `pstree`
-- `htop`
-- `btop`
-- `glances`
-- `atop`
-- `nmon`
-- `s-tui`
+`df`, `du`, `lsof`, `stat`, `hdparm`, `iotop`, `ioping`
 
-## Recolección de métricas de sysstat
+## Estrés del sistema y benchmarking
+Generación de carga de CPU, RAM, E/S y disco; pruebas de rendimiento y presentación de resultados.
 
-Herramientas y scripts mencionados para recopilar y procesar información de actividad del sistema.
-
-- `sadc`
-- `debian-sa1`
-- `sa1`
-- `sa2`
-
-## Almacenamiento y entrada/salida
-
-Comandos para espacio en disco, archivos abiertos, dispositivos y monitorización de E/S.
-
-- `df`
-- `du`
-- `lsof`
-- `stat`
-- `hdparm`
-- `iotop`
-- `ioping`
-
-## Carga y benchmark
-
-Herramientas utilizadas en las prácticas para generar carga o evaluar rendimiento.
-
-- `stress`
-- `bonnie++`
-- `bon_csv2html`
-- `bon_csv2txt`
+- `stress` — carga de CPU (`--cpu`), memoria (`--vm`, `--vm-bytes`), E/S (`--io`) y disco (`--hdd`, `--hdd-bytes`); duración (`--timeout`).
+- `bonnie++` — pruebas de rendimiento de discos y sistemas de archivos.
+- `s-tui` — monitoreo de CPU con integración con `stress`.
+- `bon_csv2html`, `bon_csv2txt` — transformación de resultados CSV de Bonnie++.
 
 ## Empaquetado y compresión
+Creación, prueba, extracción y descompresión de archivos y paquetes.
 
-Comandos vistos para empaquetar, comprimir, verificar y extraer archivos.
+`tar`, `gzip`, `gunzip`, `bzip2`, `bunzip2`, `7z`, `xz`, `unxz`, `zip`, `unzip`, `unrar`
 
-- `tar`
-- `gzip`
-- `gunzip`
-- `bzip2`
-- `bunzip2`
-- `7z`
-- `xz`
-- `unxz`
-- `zip`
-- `unzip`
-- `unrar`
+## Bash y utilidades empleadas en scripts
+Intérprete, entrada/salida, aritmética, conteo, secuencias y control de ejecución.
 
-## Bash y scripting
+`bash`, `echo`, `read`, `let`, `expr`, `wc`, `seq`, `clear`, `break`
 
-Intérpretes, builtins y utilidades usados explícitamente en los ejemplos de scripting.
+Construcciones de Bash vistas en clase: `if`, `case`, `select`, `for`, `while`, `until`, `function`, `[ ... ]`.
 
-- `bash`
-- `sh`
-- `echo`
-- `read`
-- `let`
-- `expr`
-- `break`
-- `clear`
-- `seq`
+## Programación de tareas
+Tareas únicas y recurrentes, y consulta o eliminación de trabajos programados.
 
-## Tareas programadas
+`at`, `atq`, `atrm`, `crontab`
 
-Comandos y demonios mencionados para ejecución diferida o periódica de tareas.
+Servicios mencionados: `atd`, `cron`/`crond`.
 
-- `at`
-- `atq`
-- `atrm`
-- `crontab`
-- `atd`
-- `cron`
-- `crond`
+## Instalación de paquetes
+Instalación de herramientas adicionales citadas en las clases.
+
+`apt` (`apt install`)

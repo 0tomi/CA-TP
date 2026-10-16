@@ -5,3 +5,6 @@ dist/
 .env.local
 *.log
 /dashboard/.vite
+
+# Secretos de notificaciones (también si se despliegan en otro directorio)
+alertas.local.conf

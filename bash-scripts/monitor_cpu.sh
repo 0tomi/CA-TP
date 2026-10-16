@@ -11,4 +11,7 @@ DATOS=$(vmstat 1 2 | tail -n 1)
 
 "$API" "cpu" "$DATOS"
 
+source "$DIR/alertas.sh"
+alertar_lectura cpu "$DATOS" >&2
+
 exit 0

@@ -11,4 +11,7 @@ DATOS=$(free -m)
 
 "$API" "memoria" "$DATOS"
 
+source "$DIR/alertas.sh"
+alertar_lectura memoria "$DATOS" >&2
+
 exit 0

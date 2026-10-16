@@ -39,3 +39,8 @@ Por defecto, los scripts apuntan a **`http://10.0.2.2:8787`**, que es la direcci
 
 > [!NOTE]
 > Si en lugar de NAT usás *Adaptador Puente (Bridged)*, simplemente definí `API_HOST=http://<IP_DE_TU_PC>:8787` antes de la línea de cron. Ante cualquier corte de red, `api.sh` preserva las lecturas en `cron.log` mediante su fallback automático.
+
+## 3. Alertas y pruebas de estrés (solo VM)
+
+Ver la [guía de configuración, Telegram y demo controlada](bash-scripts/README.md).
+Las alertas están deshabilitadas por defecto; la API y el cron existentes siguen funcionando.
