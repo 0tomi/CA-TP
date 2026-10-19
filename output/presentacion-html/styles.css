@@ -232,3 +232,9 @@ p{color:var(--muted)}
  .masthead{grid-template-columns:auto 1fr}
  .section-label{text-align:right;font-size:10px;letter-spacing:1.2px}
 }
+/* Demo call-to-action lives in the text column; the screenshot keeps the right column. */
+@media(min-width:900px){
+ .dashboard-copy .demo-transition{margin-top:34px;padding-top:24px;border-top:1px solid var(--line);max-width:490px}
+ .dashboard-copy .demo-transition h3{font-size:34px;margin:0 0 16px}
+ .dashboard-demo{display:flex;flex-direction:column;justify-content:center;padding-bottom:20px}
+}
