@@ -156,3 +156,15 @@ test('rechaza archivos vacíos, sin bloques o únicamente con bloques incompleto
     assert.throws(() => parseMonitorLog(content, metadata), (error) => error instanceof MonitorLogError && error.code === 'EMPTY_LOG');
   }
 });
+
+test('interpreta correctamente sesiones remotas SSH con prefijo sshd en la terminal', () => {
+  const sshLog = block('usuarios', 'UsuarioRemoto + sshd pts/0   2026-10-19 19:25 00:04         722 (10.0.2.2)');
+  const metrics = parseMonitorLog(completeCycle() + sshLog, metadata);
+  assert.equal(metrics.sessions.length, 1);
+  assert.deepEqual(metrics.sessions[0], {
+    user: 'UsuarioRemoto',
+    terminal: 'pts/0',
+    loginAt: '2026-10-19 19:25',
+    origin: '10.0.2.2',
+  });
+});

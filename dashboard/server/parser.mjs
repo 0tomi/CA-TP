@@ -178,8 +178,8 @@ export function parseSessions(output, warnings = []) {
   return output.split(/\r?\n/).filter((line) => line.trim()).flatMap((line, index) => {
     const tokens = line.trim().split(/\s+/);
     if (auxiliary.test(tokens[0])) return [];
-    const terminalIndex = /^[+?-]$/.test(tokens[1] ?? '') ? 2 : 1;
-    if (!terminalPattern.test(tokens[terminalIndex] ?? '')) return [];
+    const terminalIndex = tokens.findIndex((t, i) => i > 0 && i <= 3 && terminalPattern.test(t));
+    if (terminalIndex === -1) return [];
     const dateIndex = terminalIndex + 1;
     let dateParts = 0;
     if (/^\d{4}-\d{2}-\d{2}$/.test(tokens[dateIndex] ?? '') && /^\d{2}:\d{2}(?::\d{2})?$/.test(tokens[dateIndex + 1] ?? '')) {
