@@ -120,3 +120,32 @@ p{color:var(--muted)}
  .dash-bottom .demo-transition{margin-top:0;padding-top:0;border-top:0}
  .dash-bottom .demo-transition h3{font-size:28px;margin:4px 0 10px}
 }
+
+/* Clarity pass: alert branch hangs from step 2, Telegram listed as a channel, two-part footer. */
+.alert-branch{grid-column:2/-1;position:relative;margin-top:22px;padding:14px 18px 14px 22px;border:1px solid #d4ef8050;border-radius:8px;background:#d4ef800c}
+.alert-branch:before{content:"";position:absolute;left:23px;top:-23px;width:2px;height:22px;background:var(--lime);opacity:.7}
+.branch-label{display:block;font-size:11px;letter-spacing:1.6px;color:var(--lime);margin-bottom:10px}
+.alert-branch ol{list-style:none;margin:0;padding:0;display:flex;align-items:flex-start;gap:14px}
+.alert-branch li{display:flex;flex-direction:column;gap:3px;flex:1}
+.alert-branch li+li:before{content:"→";color:var(--lime);font-size:20px;position:absolute;margin:-2px 0 0 -20px}
+.alert-branch li{position:relative}
+.alert-branch code{font-size:17px!important}
+.alert-branch b{font-size:18px;font-weight:500;color:var(--cream)}
+.alert-branch small{font-size:14px;color:var(--muted);line-height:1.35}
+.branch-end b{color:var(--lime)}
+.source-list .source-telegram strong,.source-list .source-telegram span{color:var(--lime)}
+.foot-sep{width:1px;height:16px;background:var(--line);margin:0 10px}
+.resource-foot b{color:var(--cream);font-weight:600}
+.dash-bottom{grid-template-columns:1fr}
+@media(min-width:900px){
+ .pipeline{grid-template-columns:repeat(5,1fr);gap:22px;top:46%}
+ /* The pipe ends at the centre of node 5: four columns + four gaps + half a node. */
+ .pipe-svg{width:calc(80% + 17.6px + 24px)}
+ .source-list>div{grid-template-columns:25px 92px 1fr}
+ .source-list p{font-size:16px}
+}
+@media(max-width:899px){
+ .alert-branch{grid-column:1/-1}
+ .alert-branch ol{flex-direction:column}
+ .alert-branch li+li:before{display:none}
+}
