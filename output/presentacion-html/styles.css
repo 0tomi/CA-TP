@@ -133,14 +133,16 @@ p{color:var(--muted)}
 .alert-branch b{font-size:18px;font-weight:500;color:var(--cream)}
 .alert-branch small{font-size:14px;color:var(--muted);line-height:1.35}
 .branch-end b{color:var(--lime)}
-.source-list .source-telegram strong,.source-list .source-telegram span{color:var(--lime)}
 .foot-sep{width:1px;height:16px;background:var(--line);margin:0 10px}
 .resource-foot b{color:var(--cream);font-weight:600}
 .dash-bottom{grid-template-columns:1fr}
 @media(min-width:900px){
- .pipeline{grid-template-columns:repeat(5,1fr);gap:22px;top:46%}
- /* The pipe ends at the centre of node 5: four columns + four gaps + half a node. */
- .pipe-svg{width:calc(80% + 17.6px + 24px)}
+ .pipeline{grid-template-columns:repeat(5,minmax(0,1fr));gap:22px;top:51%}
+ /* Steps are centred in five equal columns; the pipe runs from the centre of node 1
+    to the centre of node 5 (half a column in from each side). */
+ .stage{text-align:center}
+ .stage-node{margin-left:auto;margin-right:auto}
+ .pipe-svg{left:calc((100% - 88px) / 10);width:calc(100% - (100% - 88px) / 5)}
  .source-list>div{grid-template-columns:25px 92px 1fr}
  .source-list p{font-size:16px}
 }
@@ -149,3 +151,72 @@ p{color:var(--muted)}
  .alert-branch ol{flex-direction:column}
  .alert-branch li+li:before{display:none}
 }
+
+/* Visual pass: show instead of tell. */
+/* 1 · Medir → Mostrar cards */
+.arch-cards{display:flex;align-items:stretch;gap:14px;margin-top:30px;max-width:640px}
+.arch-card{flex:1;border:1px solid var(--line);border-radius:10px;padding:18px 20px;background:#0b241c99}
+.arch-card strong{display:block;font-size:30px;font-weight:450;letter-spacing:-.6px;margin:8px 0 6px;color:var(--cream)}
+.arch-card p{font-size:16px!important;line-height:1.45!important}
+.arch-folder{font:13px Consolas,"Courier New",monospace;color:var(--lime)}
+.arch-flow{align-self:center;font-size:30px;color:var(--lime)}
+
+/* 2 · fallback branch hanging from step 3 */
+.fallback{display:flex;flex-direction:column;align-items:center;margin-top:12px}
+.fallback i{width:0;height:28px;border-left:2px dashed #d4ef8099}
+.fallback span{border:1px dashed #d4ef8099;border-radius:20px;padding:8px 16px;font-size:15px;color:var(--muted);white-space:nowrap;background:#071f1bcc}
+.fallback b{color:var(--cream);font-weight:500}
+.fallback code{font-size:14px!important}
+.collection-summary{display:flex;align-items:center;gap:10px;padding-left:0!important;max-width:none!important}
+
+/* 3 · sample outputs beside each monitor */
+.monitor-ledger article{align-items:flex-start}
+.monitor-ledger article>div:first-of-type{flex:1;min-width:0}
+.sample{flex:0 0 330px;border:1px solid var(--line);border-radius:8px;padding:10px 14px 11px;background:#020b08b3}
+.sample pre{margin:6px 0 6px;font:14px/1.5 Consolas,"Courier New",monospace;color:var(--muted);white-space:pre}
+.sample mark{background:#d4ef8026;color:var(--lime);border-radius:3px;padding:0 3px}
+.sample-label{font-size:12px;letter-spacing:1.2px;color:var(--gold)}
+.sample-note{font-size:14px;color:var(--muted)}
+.sample-note b{color:var(--lime);font-weight:600}
+
+/* 4 · threshold meters and service status */
+.meter{margin:4px 0 14px}
+.meter-bar{position:relative;height:10px;border-radius:6px;background:linear-gradient(90deg,#8fbf6a 0 var(--warn),#e8cf62 var(--warn) var(--crit),#e5765b var(--crit) 100%)}
+.meter-mark{position:absolute;left:var(--value);top:-5px;width:3px;height:20px;margin-left:-1.5px;background:var(--cream);border-radius:2px;box-shadow:0 0 0 2px #020b08}
+.meter-scale{position:relative;height:18px}
+.meter-scale span{position:absolute;top:3px;transform:translateX(-50%);font-size:12px;color:var(--muted)}
+.slide p.meter-read{font-size:15px!important;margin:2px 0 0!important;min-height:0!important}
+.lvl-ok{color:#a9d985!important}
+.lvl-warn{color:#f0d66a!important}
+.svc-pills{display:flex;gap:10px;flex-wrap:wrap;margin:4px 0 4px}
+.svc{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:20px;padding:6px 14px;font:14px Consolas,"Courier New",monospace;color:var(--cream)}
+.svc i{width:8px;height:8px;border-radius:50%}
+.svc.on i{background:#8fbf6a;box-shadow:0 0 10px #8fbf6a}
+.svc.off i{background:#e5765b;box-shadow:0 0 10px #e5765b}
+.svc b{font-family:"Segoe UI",Arial,sans-serif;font-weight:500}
+.svc.on b{color:#a9d985}
+.svc.off b{color:#f0a08a}
+.resource-details article>.meter-read+.code-row,.resource-details article>.meter+code{margin-top:auto}
+
+/* 5 · numbered pins on the screenshot */
+.shot-pin{position:absolute;width:30px;height:30px;margin:-15px 0 0 -15px;border-radius:50%;background:var(--lime);color:var(--ink);font:600 15px/30px "Segoe UI",Arial,sans-serif;text-align:center;box-shadow:0 0 0 5px #d4ef8040,0 6px 16px #000a}
+.dash-shot figcaption{justify-content:space-between;flex-wrap:wrap;gap:8px 20px}
+.shot-legend{list-style:none;display:flex;gap:22px;margin:0;padding:0}
+.shot-legend li{display:flex;align-items:center;gap:8px;font-size:15px;letter-spacing:0;color:var(--cream)}
+.shot-legend b{width:22px;height:22px;border-radius:50%;background:var(--lime);color:var(--ink);font-size:12px;display:grid;place-items:center}
+.shot-source{font-size:12px;letter-spacing:1.2px;color:var(--gold)}
+
+/* Small uppercase labels: larger, less tracking, so they survive a 1080p stream. */
+.stage-label,.spec-label,.annotation,.art-caption,.tiny-kicker,.right-small,.frequency small,.demo-transition>span,.alert-chip,.monitor-ledger h3 span,.callout span{font-size:12px!important;letter-spacing:1.2px!important}
+.stage-alert .stage-label{font-size:12px!important}
+
+@media(max-width:899px){
+ .arch-cards{flex-direction:column}
+ .arch-flow{transform:rotate(90deg)}
+ .monitor-ledger article{flex-wrap:wrap}
+ .sample{flex-basis:100%}
+ .fallback span{white-space:normal}
+}
+
+.bottom-statement{font-size:14px}
+@media(min-width:900px){.sample{flex:0 0 400px;width:400px}.sample pre{font-size:14px}}
