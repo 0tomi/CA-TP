@@ -56,7 +56,7 @@ cat > "$TMP/bin/curl" <<'STUB'
 #!/bin/bash
 printf '%s\n' "$@" > "$PRUEBA_TMP/curl.args"
 echo envio >> "$PRUEBA_TMP/envios"
-cat > "$PRUEBA_TMP/curl.stdin"
+[[ "$*" == *--config* ]] && cat > "$PRUEBA_TMP/curl.stdin"
 case "${CURL_MODO:-ok}" in
     lento) touch "$PRUEBA_TMP/enviando"; sleep 0.3; printf '{"ok":true,"result":{}}\n200' ;;
     fallo) echo 'diagnóstico con TOKEN que no debe mostrarse' >&2; exit 7 ;;
@@ -144,20 +144,16 @@ cat > "$TMP/bin/df" <<'STUB'
 echo df >> "$PRUEBA_TMP/mediciones"
 cat "$PRUEBA_TMP/disco"
 STUB
-cat > "$TMP/api" <<'STUB'
-#!/bin/bash
-printf '%s\n%s\n' "$1" "$2"
-STUB
-chmod +x "$TMP/bin/"{vmstat,free,df} "$TMP/api"
+chmod +x "$TMP/bin/"{vmstat,free,df}
 printf '%s\n' '2 0 0 1812040 62412 2193432 0 0 0 12 120 300 16 4 80 0 0' > "$TMP/cpu"
 printf '%s\n' ' total used free shared buff/cache available' 'Mem: 2048 128 1024 0 896 1920' 'Swap: 1024 0 1024' > "$TMP/memoria"
 printf '%s\n' 'Filesystem Size Used Avail Use% Mounted on' '/dev/a 10G 9G 1G 90% /' '/dev/b 10G 8G 2G 80% /media/disco externo' > "$TMP/disco"
-export API_PATH="$TMP/api" ALERTAS_CANAL=consola
+export CURL_MODO=fallo ALERTAS_CANAL=consola
 for recurso in cpu memoria disco; do
     : > "$TMP/mediciones"
     for habilitado in 0 1; do
         ALERTAS_HABILITADAS=$habilitado bash "$DIR/monitor_$recurso.sh" > "$TMP/salida" 2> "$TMP/avisos"
-        igual "$(cat "$TMP/salida")" "$(printf '%s\n%s' "$recurso" "$(cat "$TMP/$recurso")")" "Payload $recurso"
+        igual "$(cat "$TMP/salida")" "$(printf '=== API MOCK ===\nRecurso: %s\n%s\n================' "$recurso" "$(cat "$TMP/$recurso")")" "Payload $recurso"
     done
     igual "$(wc -l < "$TMP/mediciones" | tr -d ' ')" 2 "Una medición por ejecución de $recurso"
 done

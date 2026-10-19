@@ -1,9 +1,6 @@
 #!/bin/bash
 
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
-API="${API_PATH:-/home/USUARIO/monitores/api.sh}"
-[ ! -f "$API" ] && API="$DIR/api.sh"
-[ ! -f "$API" ] && API="$DIR/api_mock.sh"
 
 # Nombres de los procesos a comprobar (separados por espacios).
 SERVICIOS="cron sshd"
@@ -18,6 +15,6 @@ DATOS=$(for SERVICIO in $SERVICIOS; do
     fi
 done)
 
-"$API" "servicios" "$DATOS"
+"$DIR/api.sh" "servicios" "$DATOS"
 
 exit 0
