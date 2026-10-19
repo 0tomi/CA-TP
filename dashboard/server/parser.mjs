@@ -70,12 +70,39 @@ function latestCycle(events, warnings) {
   return cycle;
 }
 
+export function parseProcesses(lines, metricKey) {
+  const processes = [];
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed) continue;
+    const tokens = trimmed.split(/\s+/);
+    if (tokens[0].toUpperCase() === 'PID') continue;
+    if (tokens.length >= 4 && /^\d+$/.test(tokens[0])) {
+      const pid = parseInt(tokens[0], 10);
+      const user = tokens[1];
+      const percent = parseFloat(tokens[2]);
+      const command = tokens.slice(3).join(' ');
+      if (Number.isFinite(pid) && Number.isFinite(percent) && command) {
+        processes.push({
+          pid,
+          user,
+          [metricKey]: percent,
+          usage: percent,
+          command,
+        });
+      }
+    }
+  }
+  return processes.slice(0, 5);
+}
+
 export function parseCpu(output) {
   const lines = output.trim().split(/\r?\n/).filter(Boolean);
-  if (lines.length !== 1) return null;
+  if (lines.length < 1) return null;
   const values = lines[0].trim().split(/\s+/).map(Number);
   if (values.length < 17 || values.some((value) => !Number.isFinite(value) || value < 0)) return null;
   if (values.slice(12, 17).some((value) => value > 100)) return null;
+  const topProcesses = parseProcesses(lines.slice(1), 'cpu');
   return {
     user: values[12],
     system: values[13],
@@ -88,6 +115,7 @@ export function parseCpu(output) {
     freeMemoryKb: values[3],
     bufferMemoryKb: values[4],
     cacheMemoryKb: values[5],
+    topProcesses,
   };
 }
 
@@ -202,12 +230,14 @@ export function parseSessions(output, warnings = []) {
 }
 
 export function parseMemory(output) {
-  const rows = output.split(/\r?\n/).map((line) => line.trim().split(/\s+/));
+  const allLines = output.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+  const rows = allLines.map((line) => line.split(/\s+/));
   // free translates its labels: «Mem:»/«Mem.:» and «Swap:»/«Inter:» in Spanish locales.
   const mem = rows.find((tokens) => /^Mem/i.test(tokens[0]))?.slice(1).map(Number) ?? [];
   const swap = rows.find((tokens) => /^(?:Swap|Inter)/i.test(tokens[0]))?.slice(1).map(Number) ?? [];
   const valid = (values, count) => values.length >= count && values.every((value) => Number.isFinite(value) && value >= 0);
   if (!valid(mem, 6) || !valid(swap, 3)) return null;
+  const topProcesses = parseProcesses(allLines, 'memory');
   return {
     totalMb: mem[0],
     usedMb: mem[1],
@@ -215,6 +245,7 @@ export function parseMemory(output) {
     availableMb: mem[5],
     swapTotalMb: swap[0],
     swapUsedMb: swap[1],
+    topProcesses,
   };
 }
 

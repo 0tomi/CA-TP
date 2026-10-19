@@ -141,6 +141,10 @@ export default function App() {
   const matchingSessions = sessions.filter(session => `${session.user} ${session.terminal} ${session.origin} ${session.loginAt}`.toLowerCase().includes(search))
   const matchingDisks = disks.filter(disk => `${disk.filesystem} ${disk.mount}`.toLowerCase().includes(search))
   const matchingServices = services.filter(service => `${service.name} ${service.active ? 'activo' : 'inactivo'}`.toLowerCase().includes(search))
+  const cpuProcesses = cpu?.topProcesses ?? []
+  const memProcesses = memory?.topProcesses ?? []
+  const matchingCpuProcesses = cpuProcesses.filter(p => `${p.pid} ${p.user} ${p.command}`.toLowerCase().includes(search))
+  const matchingMemProcesses = memProcesses.filter(p => `${p.pid} ${p.user} ${p.command}`.toLowerCase().includes(search))
   const ramUsage = memory && memory.totalMb > 0 ? memory.usedMb / memory.totalMb * 100 : undefined
   const cpuHistory = (data?.history ?? []).filter(item => Number.isFinite(item.usage)).slice(-samples)
   const memHistory = (data?.memoryHistory ?? []).filter(item => Number.isFinite(item.usage)).slice(-samples)
@@ -198,6 +202,16 @@ export default function App() {
       {matchingServices.map((service, index) => <div key={index} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px', background: 'rgba(255,255,255,0.03)', borderRadius: '6px' }}><span style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '13px' }}><ServerCog size={16} style={{ color: service.active ? '#8cdb65' : '#ff6b6b' }} />{service.name}</span><StateBadge state={service.active ? 'UP' : 'DOWN'} /></div>)}
       {!matchingServices.length && <Empty icon={ServerCog} title={search ? 'Sin servicios coincidentes' : 'Sin servicios registrados'} text={search ? 'Sin coincidencias para la búsqueda.' : 'La última captura no incluye una lectura de servicios.'} />}
     </div>
+  </div>
+  <div className="panel" style={{ padding: '20px' }}>
+    <div className="subsection-heading"><h3>Top 5 Procesos CPU <span className="neutral-count">{matchingCpuProcesses.length}</span></h3><span>Mayor consumo de CPU</span></div>
+    <div className="table-scroll" style={{ marginTop: '15px' }}><table><thead><tr><th>PID</th><th>Usuario</th><th>% CPU</th><th>Comando</th></tr></thead><tbody>{matchingCpuProcesses.map((p, index) => <tr key={`${p.pid}-${index}`}><td className="mono">{p.pid}</td><td>{p.user}</td><td><span className={p.usage >= 50 ? 'text-danger' : ''} style={{ fontWeight: 600 }}>{p.usage}%</span></td><td className="mono" style={{ color: '#4e7155' }}>{p.command}</td></tr>)}</tbody></table></div>
+    {!matchingCpuProcesses.length && <Empty icon={Cpu} title={search ? 'Sin procesos coincidentes' : 'Sin procesos registrados'} text={search ? 'Sin coincidencias para la búsqueda.' : 'La última captura no incluye procesos de CPU.'} />}
+  </div>
+  <div className="panel" style={{ padding: '20px' }}>
+    <div className="subsection-heading"><h3>Top 5 Procesos RAM <span className="neutral-count">{matchingMemProcesses.length}</span></h3><span>Mayor consumo de memoria</span></div>
+    <div className="table-scroll" style={{ marginTop: '15px' }}><table><thead><tr><th>PID</th><th>Usuario</th><th>% RAM</th><th>Comando</th></tr></thead><tbody>{matchingMemProcesses.map((p, index) => <tr key={`${p.pid}-${index}`}><td className="mono">{p.pid}</td><td>{p.user}</td><td><span className={p.usage >= 50 ? 'text-danger' : ''} style={{ fontWeight: 600 }}>{p.usage}%</span></td><td className="mono" style={{ color: '#4e7155' }}>{p.command}</td></tr>)}</tbody></table></div>
+    {!matchingMemProcesses.length && <Empty icon={MemoryStick} title={search ? 'Sin procesos coincidentes' : 'Sin procesos registrados'} text={search ? 'Sin coincidencias para la búsqueda.' : 'La última captura no incluye procesos de memoria.'} />}
   </div>
   <div className="panel" style={{ padding: '20px', gridColumn: '1 / -1' }}>
     <div className="subsection-heading"><h3>Particiones de disco <span className="neutral-count">{disks.length}</span></h3><span>Espacio local</span></div>

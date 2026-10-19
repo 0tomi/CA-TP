@@ -14,6 +14,7 @@ test('interpreta las siete salidas reales y conserva el texto de auditoría', ()
     user: 20, system: 4, idle: 74, wait: 2, steal: 0,
     running: 2, blocked: 0, swapUsedKb: 0, freeMemoryKb: 1812040,
     bufferMemoryKb: 62412, cacheMemoryKb: 2193432,
+    topProcesses: [],
   });
   assert.equal(metrics.interfaces.length, 2);
   assert.deepEqual(metrics.interfaces[1], {
@@ -36,7 +37,7 @@ test('interpreta las siete salidas reales y conserva el texto de auditoría', ()
   assert.deepEqual(metrics.memoryHistory, [{ sample: 1, usage: 30.75 }]);
   assert.equal(metrics.logs[1].output, networkOutput);
   assert.deepEqual(metrics.logs.map((entry) => entry.resource), ['cpu', 'red', 'dispositivos_red', 'usuarios', 'memoria', 'disco', 'servicios']);
-  assert.deepEqual(metrics.memory, { totalMb: 3916, usedMb: 1204, freeMb: 812, availableMb: 2468, swapTotalMb: 1023, swapUsedMb: 12 });
+  assert.deepEqual(metrics.memory, { totalMb: 3916, usedMb: 1204, freeMb: 812, availableMb: 2468, swapTotalMb: 1023, swapUsedMb: 12, topProcesses: [] });
   assert.deepEqual(metrics.disks, [
     { filesystem: '/dev/sda1', size: '29G', used: '5.2G', available: '22G', usePercent: 20, mount: '/' },
     { filesystem: '/dev/sda3', size: '9.8G', used: '8.1G', available: '1.2G', usePercent: 88, mount: '/home' },
@@ -66,7 +67,7 @@ test('interpreta free -m en español y rechaza una salida de memoria inválida',
 Mem.:           3916        1204         812          24        1900        2468
 Inter:          1023          12        1011`;
   const metrics = parseMonitorLog(block('memoria', spanish), metadata);
-  assert.deepEqual(metrics.memory, { totalMb: 3916, usedMb: 1204, freeMb: 812, availableMb: 2468, swapTotalMb: 1023, swapUsedMb: 12 });
+  assert.deepEqual(metrics.memory, { totalMb: 3916, usedMb: 1204, freeMb: 812, availableMb: 2468, swapTotalMb: 1023, swapUsedMb: 12, topProcesses: [] });
   const invalid = parseMonitorLog(block('memoria', memoryOutput.replace('1204', 'mucho')), metadata);
   assert.equal(invalid.memory, null);
   assert.ok(invalid.warnings.some((warning) => warning.includes('memoria es inválida')));
@@ -168,4 +169,17 @@ test('interpreta correctamente sesiones remotas SSH con prefijo sshd en la termi
     loginAt: '2026-10-19 19:25',
     origin: '10.0.2.2',
   });
+});
+
+test('interpreta el top 5 de procesos por CPU y por memoria RAM', () => {
+  const cpuWithProcs = `${cpuOutput()}\n    PID USER     %CPU COMMAND\n   5213 tomi     63.3 firefox-bin\n   3982 tomi     49.0 cinnamon\n   8122 tomi     33.0 Isolated Web Co\n   7054 tomi     33.0 antigravity\n   5650 tomi     25.0 Isolated Web Co\n   9999 tomi     10.0 extra-ignorado`;
+  const memWithProcs = `${memoryOutput}\n    PID USER     %MEM COMMAND\n   5213 tomi      6.0 firefox-bin\n   8612 tomi      3.7 firefox-bin\n   7054 tomi      3.3 antigravity\n   8122 tomi      3.2 Isolated Web Co\n  24314 tomi      2.8 VirtualBoxVM\n  11111 tomi      1.0 extra-ignorado`;
+  const log = block('cpu', cpuWithProcs) + block('memoria', memWithProcs);
+  const metrics = parseMonitorLog(log, metadata);
+  assert.equal(metrics.cpu.topProcesses.length, 5);
+  assert.deepEqual(metrics.cpu.topProcesses[0], { pid: 5213, user: 'tomi', cpu: 63.3, usage: 63.3, command: 'firefox-bin' });
+  assert.deepEqual(metrics.cpu.topProcesses[2], { pid: 8122, user: 'tomi', cpu: 33.0, usage: 33.0, command: 'Isolated Web Co' });
+  assert.equal(metrics.memory.topProcesses.length, 5);
+  assert.deepEqual(metrics.memory.topProcesses[0], { pid: 5213, user: 'tomi', memory: 6.0, usage: 6.0, command: 'firefox-bin' });
+  assert.deepEqual(metrics.memory.topProcesses[4], { pid: 24314, user: 'tomi', memory: 2.8, usage: 2.8, command: 'VirtualBoxVM' });
 });
