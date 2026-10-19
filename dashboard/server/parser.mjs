@@ -269,6 +269,7 @@ export function parseMonitorLog(content, { collectedAt, hostLabel = 'Servidor De
     disks: [],
     services: [],
     history: [],
+    memoryHistory: [],
     logs: [],
     warnings,
   };
@@ -298,6 +299,12 @@ export function parseMonitorLog(content, { collectedAt, hostLabel = 'Servidor De
   snapshot.history = cpuSamples.slice(-100).map((cpu, index, samples) => ({
     sample: cpuSamples.length - samples.length + index + 1,
     usage: Math.round((100 - cpu.idle) * 100) / 100,
+  }));
+  const memSamples = events.filter((event) => event.complete && event.resource === 'memoria')
+    .map((event) => parseMemory(event.output)).filter(Boolean);
+  snapshot.memoryHistory = memSamples.slice(-100).map((mem, index, samples) => ({
+    sample: memSamples.length - samples.length + index + 1,
+    usage: mem.totalMb > 0 ? Math.round((mem.usedMb / mem.totalMb * 100) * 100) / 100 : 0,
   }));
   snapshot.warnings = [...new Set(warnings)];
   return snapshot;

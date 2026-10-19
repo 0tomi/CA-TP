@@ -33,6 +33,7 @@ test('interpreta las siete salidas reales y conserva el texto de auditoría', ()
     { user: 'ana', terminal: 'pts/1', loginAt: 'Oct 7 11:12', origin: 'laptop.local' },
   ]);
   assert.deepEqual(metrics.history, [{ sample: 1, usage: 26 }]);
+  assert.deepEqual(metrics.memoryHistory, [{ sample: 1, usage: 30.75 }]);
   assert.equal(metrics.logs[1].output, networkOutput);
   assert.deepEqual(metrics.logs.map((entry) => entry.resource), ['cpu', 'red', 'dispositivos_red', 'usuarios', 'memoria', 'disco', 'servicios']);
   assert.deepEqual(metrics.memory, { totalMb: 3916, usedMb: 1204, freeMb: 812, availableMb: 2468, swapTotalMb: 1023, swapUsedMb: 12 });

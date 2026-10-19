@@ -26,3 +26,8 @@
 @media(max-width:370px){.main-nav button{font-size:10px;padding-left:5px;padding-right:5px}.hero-overview h1{font-size:26px}.hero-subtitle{font-size:10px;max-width:95px}.hero-stat strong{font-size:24px}.hero-stat div>span{font-size:9px}.stat-tag{font-size:9px}.device-heading strong{font-size:11px}.device-controls>.subtle-select{max-width:61px}.hero-activity h2{font-size:14px}.hero-activity>p,.hero-activity .chart-control,.sample-select select{font-size:9px}.hero-bottom>span,.hero-bottom button{font-size:9px}.distribution-values strong{font-size:25px}.alerts-panel .alert-row,.alerts-panel .text-button{font-size:9px}}
 
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}}
+
+.metric-toggle-group{display:inline-flex;align-items:center;background:rgba(255,255,255,.08);border-radius:9999px;padding:2px;gap:2px}
+.metric-toggle-btn{background:transparent;border:none;color:rgba(255,255,255,.65);font-size:10px;font-weight:600;padding:2px 9px;border-radius:9999px;cursor:pointer;transition:all .15s ease}
+.metric-toggle-btn:hover{color:#fff}
+.metric-toggle-btn.active{background:#a2f764;color:#0b2214}

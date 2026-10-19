@@ -283,6 +283,7 @@ export function createMonitorServer({
             disks: [],
             services: [],
             history: [],
+            memoryHistory: [],
             logs: [],
             warnings: [],
           };
@@ -324,9 +325,19 @@ export function createMonitorServer({
           case 'usuarios':
             inMemorySnapshot.sessions = parsed;
             break;
-          case 'memoria':
+          case 'memoria': {
             inMemorySnapshot.memory = parsed;
+            const usage = parsed.totalMb > 0 ? Math.round((parsed.usedMb / parsed.totalMb * 100) * 100) / 100 : 0;
+            const lastSample = (inMemorySnapshot.memoryHistory && inMemorySnapshot.memoryHistory.length > 0)
+              ? inMemorySnapshot.memoryHistory[inMemorySnapshot.memoryHistory.length - 1].sample
+              : 0;
+            inMemorySnapshot.memoryHistory ??= [];
+            inMemorySnapshot.memoryHistory.push({ sample: lastSample + 1, usage });
+            if (inMemorySnapshot.memoryHistory.length > 100) {
+              inMemorySnapshot.memoryHistory = inMemorySnapshot.memoryHistory.slice(-100);
+            }
             break;
+          }
           case 'disco':
             inMemorySnapshot.disks = parsed;
             break;
