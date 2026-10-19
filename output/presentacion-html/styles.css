@@ -88,3 +88,35 @@
  .mock-chart{height:70px}
  .mock-sidebar span{padding:9px 8px}
 }
+
+/* Contrast pass: body copy near-white, labels brighter, rules more visible. */
+:root{--cream:#fbfaf4;--muted:#eef0e6;--gold:#ecdcab;--line:rgba(236,242,222,.32)}
+p{color:var(--muted)}
+.stage-label,.mini-index,.tiny-kicker,.annotation,.spec-label,.art-caption,.right-small,.frequency small,.demo-transition>span{color:var(--gold)}
+.footer-section,.slide-dots button,.controls button{color:#eef0e6}
+.monitor-ledger h3 span{color:var(--gold)}
+.mock-sidebar span{color:#eef0e6}
+.stage-alert .stage-node{background:var(--lime);color:var(--ink);border-color:var(--lime)}
+.stage-alert .stage-label{color:var(--lime)}
+.telegram-note{display:flex;gap:12px;align-items:flex-start;margin-top:16px;padding:12px 14px;border:1px solid #d4ef8045;border-radius:6px;background:#d4ef800d;max-width:490px}
+.telegram-note>span{color:var(--lime);font-size:20px;line-height:1.2}
+.telegram-note p{font-size:15px!important;line-height:1.45}
+.telegram-note b{color:var(--cream);font-weight:500}
+@media(min-width:900px){
+ .pipeline{grid-template-columns:repeat(5,1fr);gap:22px}
+ .stage h3{font-size:24px}
+ .stage p{font-size:16px}
+ .source-list{margin-top:18px}
+ .source-list>div{padding:11px 0}
+ .source-note{font-size:14px;margin-top:12px}
+}
+.dash-shot{margin:0;position:relative}
+.dash-shot img{display:block;width:100%;height:auto;border-radius:10px;border:1px solid #d4ef8040;box-shadow:0 28px 70px #000a,0 0 0 8px #d4ef8008}
+.dash-shot figcaption{display:flex;align-items:center;gap:8px;margin-top:12px;font-size:10px;letter-spacing:1.5px;color:var(--gold)}
+@media(min-width:900px){
+ .dashboard-demo{padding-top:4px}
+ .dash-bottom{display:grid;grid-template-columns:1fr auto;gap:28px;align-items:end;margin-top:14px;padding-top:14px;border-top:1px solid var(--line)}
+ .dash-bottom .refresh-note{margin-top:0;align-self:center}
+ .dash-bottom .demo-transition{margin-top:0;padding-top:0;border-top:0}
+ .dash-bottom .demo-transition h3{font-size:28px;margin:4px 0 10px}
+}
