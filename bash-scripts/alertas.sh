@@ -71,7 +71,11 @@ CONFIG
     mensaje="${HOSTNAME:-Debian} | $recurso (${3:-general}): $nivel, $valor% (antes: $anterior)"$'\n'"Umbrales: amarillo ${amarillo}% / rojo ${rojo}%"
     [[ -n $detalle ]] && mensaje+=$'\n'"$detalle"
     if carga=$(uptime 2>/dev/null) && [[ -n $carga ]]; then
-        mensaje+=$'\n'"Sistema:${carga}"
+        if [[ $carga =~ ^[[:space:]]*(.*),[[:space:]]*(load\ average|carga\ promedio):[[:space:]]*([^[:space:]]+),[[:space:]]+([^[:space:]]+),[[:space:]]+([^[:space:]]+)[[:space:]]*$ ]]; then
+            mensaje+=$'\n'"Sistema: ${BASH_REMATCH[1]} | Carga promedio (1m: ${BASH_REMATCH[3]} | 5m: ${BASH_REMATCH[4]} | 15m: ${BASH_REMATCH[5]})"
+        else
+            mensaje+=$'\n'"Sistema:${carga}"
+        fi
     fi
     if notificar "$mensaje"; then
         # Escritura atómica bajo lock: jamás registrar como entregado un fallo.
