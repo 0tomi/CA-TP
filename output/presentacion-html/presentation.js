@@ -25,6 +25,7 @@
     dots.forEach((dot, i) => { dot.classList.toggle('active', i === index); if (i === index) dot.setAttribute('aria-current', 'step'); else dot.removeAttribute('aria-current'); });
     document.querySelector('#current-number').textContent = String(index + 1).padStart(2, '0');
     document.querySelector('#current-title').textContent = slides[index].dataset.title;
+    document.querySelector('#section-label').textContent = slides[index].dataset.section;
     document.querySelector('#progress').style.width = `${(index + 1) / slides.length * 100}%`;
     document.querySelector('#prev-button').disabled = index === 0;
     document.querySelector('#next-button').disabled = index === slides.length - 1;

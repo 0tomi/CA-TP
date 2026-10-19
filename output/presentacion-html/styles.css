@@ -220,3 +220,15 @@ p{color:var(--muted)}
 
 .bottom-statement{font-size:14px}
 @media(min-width:900px){.sample{flex:0 0 400px;width:400px}.sample pre{font-size:14px}}
+
+/* Header carries the current section; slides no longer repeat it. */
+.masthead{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;justify-content:normal}
+.section-label{font-size:13px;letter-spacing:2px;font-weight:600;color:var(--lime);text-align:center}
+.masthead .course{justify-self:end;font-size:12px;letter-spacing:1.6px;color:var(--cream)}
+@media(min-width:900px){
+ .cover-copy{display:flex;flex-direction:column;justify-content:center;padding-bottom:70px}
+}
+@media(max-width:899px){
+ .masthead{grid-template-columns:auto 1fr}
+ .section-label{text-align:right;font-size:10px;letter-spacing:1.2px}
+}
